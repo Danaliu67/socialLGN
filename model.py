@@ -48,6 +48,7 @@ class LightGCN(nn.Module):
         self.config = config
         self.dataset = dataset
         self._init_weight()
+        self.computer()
 
     def _init_weight(self):
         self.num_users = self.dataset.n_users

@@ -23,6 +23,6 @@ def parse_args():
                         help="@k test list")
     parser.add_argument('--testbatch', type=str, default=100,
                         help="the batch size of users for testing")
-    parser.add_argument('--load', type=int, default=0)
+    parser.add_argument('--load', type=int, default=1)
     parser.add_argument('--seed', type=int, default=2020, help='random seed')
     return parser.parse_args()
