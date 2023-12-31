@@ -25,19 +25,27 @@ def _convert_sp_mat_to_sp_tensor(X):
 
 
 class PairDataset:
-    def __init__(self, src="lastfm"):
+    def __init__(self, idx, src="lastfm"):
         self.src = src
+        self.idx = idx
         try:
-            self.train_set = pd.read_csv(f'./data/preprocessed/{src}/train_set.txt')
-            self.test_set = pd.read_csv(f'./data/preprocessed/{src}/test_set.txt')
-            self.n_user = pd.concat([self.train_set, self.test_set])['user'].nunique()
-            self.m_item = pd.concat([self.train_set, self.test_set])['item'].nunique()
+            self.train_set = pd.read_csv(f'./data/preprocessed/{src}_data/train_set_{idx}.txt')
+            self.test_set = pd.read_csv(f'./data/preprocessed/{src}_data/test_set.txt')
         except IOError:
-            self.interactionNet, self.n_user, self.m_item = loadInteraction(src)
-            self.train_set, self.test_set = splitDataset(self.interactionNet)
-            self.train_set.to_csv(f'./data/preprocessed/{src}/train_set.txt', index=False)
-            self.test_set.to_csv(f'./data/preprocessed/{src}/test_set.txt', index=False)
+            self.train_set = loadInteraction(f"rating_with_timestamp_{idx}.mat", src)
+            self.test_set = loadInteraction("rating_with_timestamp_test.mat", src)
+            if idx != "0":
+                self.train_add_set = pd.read_csv(f'./data/preprocessed/{src}_data/train_set_predict_{str(int(idx)-1)}.txt')
+                self.train_set = pd.concat([self.train_set, self.train_add_set], ignore_index=True)
+            self.train_set.to_csv(f'./data/preprocessed/{src}_data/train_set_{idx}.txt', index=False)
+            self.test_set.to_csv(f'./data/preprocessed/{src}_data/test_set.txt', index=False)
 
+        user_list = [int(x) for x in json.load(open("./data/preprocessed/ciao/userReindex.json", "r")).values()]
+        item_list = [int(x) for x in json.load(open("./data/preprocessed/ciao/itemReindex.json", "r")).values()]
+        self.n_user = max(user_list)+1
+        self.m_item = max(item_list)+1
+        print(self.n_user, self.m_item)
+        
         self.trainUser = np.array(self.train_set['user'])
         self.trainUniqueUser = np.unique(self.train_set['user'])
         self.trainItem = np.array(self.train_set['item'])
@@ -57,6 +65,7 @@ class PairDataset:
         self._allPos = self.getUserPosItems(list(range(self.n_user)))
         # get test dictionary
         self._testDic = self.__build_test()
+        self._trainDic = self.__build_train()
         self._coldTestDic = self.__build_cold_test()
         self._userDic, self._itemDic = self._getInteractionDic()
 
@@ -92,7 +101,7 @@ class PairDataset:
     def trainDataSize(self):
         return self._trainDataSize
 
-    def getUserPosItems(self, users):
+    def getUserPosItems(self, users, rec=False):
         """
         Method of get user all positive items
         Returns
@@ -106,6 +115,23 @@ class PairDataset:
             # item_u = item_u['item'].values
             # posItems.append(item_u)
         return posItems
+
+    def __build_train(self):
+        """
+        Method of build train dictionary
+        Returns
+        -------
+            dict: {user: [items]}
+        """
+        train_data = {}
+        for i in range(len(self.train_set)):
+            user = self.train_set['user'][i]
+            item = self.train_set['item'][i]
+            if train_data.get(user):
+                train_data[user].append(item)
+            else:
+                train_data[user] = [item]
+        return train_data
 
     def __build_test(self):
         """
@@ -157,8 +183,8 @@ class PairDataset:
 
 
 class GraphDataset(PairDataset):
-    def __init__(self, src):
-        super(GraphDataset, self).__init__(src)
+    def __init__(self, idx, src):
+        super(GraphDataset, self).__init__(idx, src)
         # build (users,items), bipartite graph
         self.interactionGraph = None
 
@@ -194,8 +220,8 @@ class GraphDataset(PairDataset):
 
 
 class SocialGraphDataset(GraphDataset):
-    def __init__(self, src):
-        super(SocialGraphDataset, self).__init__(src)
+    def __init__(self, idx, src):
+        super(SocialGraphDataset, self).__init__(idx, src)
         trustPath = f'./data/preprocessed/{src}/trust.txt'
         if os.path.exists(trustPath):
             self.friendNet = pd.read_csv(trustPath)
@@ -241,7 +267,7 @@ class SocialGraphDataset(GraphDataset):
         return self.socialGraph
 
 
-def loadInteraction(src='lastfm', prepro='origin', binary=True, posThreshold=None, level='ui'):
+def loadInteraction(filename, src='lastfm', prepro='origin', binary=True, posThreshold=None, level='ui'):
     """
         Method of loading certain raw data
         Parameters
@@ -263,14 +289,14 @@ def loadInteraction(src='lastfm', prepro='origin', binary=True, posThreshold=Non
     # which dataset will use
     if src == 'lastfm':
         # user_artists.dat
-        df = pd.read_csv(f'./data/raw/{src}/user_artists.dat', sep='\t')
+        df = pd.read_csv(f'./data/raw/{src}/{filename}', sep='\t')
         df.rename(columns={'userID': 'user', 'artistID': 'item', 'weight': 'rating'}, inplace=True)
 
     elif src == 'ciao':
-        d = sio.loadmat(f'./data/raw/{src}/rating_with_timestamp.mat')
+        d = sio.loadmat(f'./data/raw/{src}/{filename}')
         prime = []
         for val in d['rating']:
-            user, item, rating, timestamp = val[0], val[1], val[3], val[5]
+            user, item, rating, timestamp = val[0], val[1], val[2], val[3]
             prime.append([user, item, rating, timestamp])
         df = pd.DataFrame(prime, columns=['user', 'item', 'rating', 'timestamp'])
         del prime, d, user, item, rating, timestamp
@@ -356,29 +382,17 @@ def loadInteraction(src='lastfm', prepro='origin', binary=True, posThreshold=Non
 
     else:
         raise ValueError('Invalid dataset preprocess type, origin/Ncore/Nfilter (N is int number) expected')
+    
+    with open(f"./data/preprocessed/{src}/userReindex.json") as f:
+        userReindex = json.load(f)
+    df['user'] = df['user'].astype(str).map(userReindex)
 
-    # encoding user_id and item_id
-    userId = pd.Categorical(df['user'])
-    itemId = pd.Categorical(df['item'])
-    df['user'] = userId.codes
-    df['item'] = itemId.codes
-
-    userCodeDict = {int(value): code for code, value in enumerate(userId.categories.values)}
-    itemCodeDict = {int(value): code for code, value in enumerate(itemId.categories.values)}
-
-    outputPath = f"./data/preprocessed/{src}"
-    if not os.path.exists(outputPath):
-        os.makedirs(outputPath)
-    with open(f"./data/preprocessed/{src}/userReindex.json", "w") as f:
-        f.write(json.dumps(userCodeDict))
-    with open(f"./data/preprocessed/{src}/itemReindex.json", "w") as f:
-        f.write(json.dumps(itemCodeDict))
-
-    userNum = df['user'].nunique()
-    itemNum = df['item'].nunique()
+    with open(f"./data/preprocessed/{src}/itemReindex.json") as f:
+        itemReindex = json.load(f)
+    df['item'] = df['item'].astype(str).map(itemReindex)
 
     logging.info(f'Finish loading [{src}]-[{prepro}] dataset')
-    return df[['user', 'item']], userNum, itemNum
+    return df[['user', 'item']]
 
 
 def loadFriend(src):

@@ -49,3 +49,6 @@ TRAIN_epochs = args.epochs
 topks = eval(args.topks)
 
 simplefilter(action="ignore", category=FutureWarning)
+
+idx = str(args.timestamp_idx)
+rec_topk = args.rec_topk

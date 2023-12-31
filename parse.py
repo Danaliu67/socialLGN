@@ -5,7 +5,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     # for hyper parameters
     parser.add_argument('-m', '--model', type=str, default='SocialLGN')
-    parser.add_argument('-d', '--dataset', type=str, default='lastfm')
+    parser.add_argument('-d', '--dataset', type=str, default='ciao')
     parser.add_argument('--recdim', type=int, default=64,
                         help="the embedding size")
     parser.add_argument('--lr', type=float, default=0.001,
@@ -25,4 +25,6 @@ def parse_args():
                         help="the batch size of users for testing")
     parser.add_argument('--load', type=int, default=0)
     parser.add_argument('--seed', type=int, default=2020, help='random seed')
+    parser.add_argument('--timestamp_idx', type=int, default=0)
+    parser.add_argument('--rec_topk', type=int, default=10)
     return parser.parse_args()

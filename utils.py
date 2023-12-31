@@ -73,7 +73,7 @@ def getFileName():
         file = f"mf-{world.dataset}-{world.config['latent_dim_rec']}.pth.tar"
     elif world.model_name in ['LightGCN', 'SocialLGN']:
         file = f"{world.model_name}-{world.dataset}-{world.config['layer']}layer-" \
-               f"{world.config['latent_dim_rec']}.pth.tar"
+               f"{world.config['latent_dim_rec']}-{world.idx}.pth.tar"
     return os.path.join(world.FILE_PATH, file)
 
 

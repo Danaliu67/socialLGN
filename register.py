@@ -8,11 +8,11 @@ import world
 
 if world.dataset in ['lastfm', 'ciao', 'epinions', 'douban', 'gowalla']:
     if world.model_name in ['SocialLGN']:
-        dataset = dataloader.SocialGraphDataset(world.dataset)
+        dataset = dataloader.SocialGraphDataset(world.idx, world.dataset)
     elif world.model_name in ['LightGCN']:
-        dataset = dataloader.GraphDataset(world.dataset)
+        dataset = dataloader.GraphDataset(world.idx, world.dataset)
     elif world.model_name in ['bpr']:
-        dataset = dataloader.PairDataset(world.dataset)
+        dataset = dataloader.PairDataset(world.idx, world.dataset)
 
 print('===========config================')
 pprint(world.config)
