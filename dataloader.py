@@ -33,19 +33,20 @@ class PairDataset:
             self.test_set = pd.read_csv(f'./data/preprocessed/{src}_data/test_set.txt')
         except IOError:
             self.train_set = loadInteraction(f"rating_with_timestamp_{idx}.mat", src)
-            self.test_set = loadInteraction("rating_with_timestamp_test.mat", src)
+            self.test_set = loadInteraction(f"rating_with_timestamp_test_{idx}.mat", src)
             if idx != "0":
-                self.train_add_set = pd.read_csv(f'./data/preprocessed/{src}_data/train_set_predict_{str(int(idx)-1)}.txt')
-                self.train_set = pd.concat([self.train_set, self.train_add_set], ignore_index=True)
+                for i in range(int(idx)):
+                    train_add_set = pd.read_csv(f'./data/preprocessed/{src}_data/train_set_predict_{str(i)}.txt')
+                    self.train_set = pd.concat([self.train_set, train_add_set], ignore_index=True)
             self.train_set.to_csv(f'./data/preprocessed/{src}_data/train_set_{idx}.txt', index=False)
-            self.test_set.to_csv(f'./data/preprocessed/{src}_data/test_set.txt', index=False)
+            self.test_set.to_csv(f'./data/preprocessed/{src}_data/test_set_{idx}.txt', index=False)
 
         user_list = [int(x) for x in json.load(open("./data/preprocessed/ciao/userReindex.json", "r")).values()]
         item_list = [int(x) for x in json.load(open("./data/preprocessed/ciao/itemReindex.json", "r")).values()]
         self.n_user = max(user_list)+1
         self.m_item = max(item_list)+1
         print(self.n_user, self.m_item)
-        
+
         self.trainUser = np.array(self.train_set['user'])
         self.trainUniqueUser = np.unique(self.train_set['user'])
         self.trainItem = np.array(self.train_set['item'])

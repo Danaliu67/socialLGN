@@ -27,4 +27,5 @@ def parse_args():
     parser.add_argument('--seed', type=int, default=2020, help='random seed')
     parser.add_argument('--timestamp_idx', type=int, default=0)
     parser.add_argument('--rec_topk', type=int, default=10)
+    parser.add_argument('--n', type=int, default=3)
     return parser.parse_args()

@@ -52,3 +52,4 @@ simplefilter(action="ignore", category=FutureWarning)
 
 idx = str(args.timestamp_idx)
 rec_topk = args.rec_topk
+n = args.n

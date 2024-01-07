@@ -12,8 +12,10 @@ bpr_batch=2048
 # important parameter
 dataset=ciao
 epochs=1
-k_rec=10
+k_rec=5
 n=3
+
+python splitTimestamp.py --n $n
 
 rm -r "./data/preprocessed/${dataset}_data/"
 mkdir "./data/preprocessed/${dataset}_data/"

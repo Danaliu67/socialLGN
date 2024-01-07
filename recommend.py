@@ -43,9 +43,17 @@ with torch.no_grad():
         batch_users_gpu = torch.tensor(batch_users, dtype=torch.long).to(device)
         rating = Recmodel.getUsersRating(batch_users_gpu)
         allPos = dataset.getUserPosItems(batch_users)
-        _, rating_K = torch.topk(rating, k=world.rec_topk)
+        top_scores, top_indices = torch.topk(rating, k=world.rec_topk)
+        mask = torch.ones_like(top_scores, dtype=torch.bool)
+        for range_i, items in enumerate(allPos):
+            for item in items:
+                item_indices = (top_indices[range_i] == item).nonzero(as_tuple=True)
+                if item_indices[0].nelement() != 0:
+                    mask[range_i][item_indices] = False
         for idx, user in enumerate(batch_users):
-            result.extend([[user, int(item)] for item in rating_K[idx] if item not in allPos[idx]])
+            rating_K = top_indices[idx][mask[idx]]
+            if len(rating_K) != 0:
+                result.extend([[user, int(item)] for item in rating_K])
 
 result_df = pd.DataFrame(result, columns=['user', 'item'])
 result_df.to_csv(f'./data/preprocessed/{dataset.src}_data/train_set_predict_{dataset.idx}.txt', index=False)
