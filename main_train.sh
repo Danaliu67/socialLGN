@@ -11,8 +11,8 @@ bpr_batch=2048
 
 # important parameter
 dataset=ciao
-epochs=1
-k_rec=5
+epochs=3000
+k_rec=10
 n=3
 
 python splitTimestamp.py --n $n
